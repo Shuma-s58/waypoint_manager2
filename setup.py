@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'waypoint_manager2_node = waypoint_manager2.waypoint_manager2_node:main'
+            'waypoint_manager2_node = waypoint_manager2.waypoint_manager2_node:main',
+            'traffic_waypoint_manager2_node = waypoint_manager2.traffic_waypoint_manager2_node:main',
         ],
     },
 )
