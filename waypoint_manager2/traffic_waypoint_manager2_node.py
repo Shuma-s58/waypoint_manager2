@@ -20,8 +20,9 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Int32
 
-WAYPOINT_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/test.yaml'
-# WAYPOINT_PATH = '/home/ros2_ws/src/waypoint_manager2/config/waypoints/test2.yaml'
+# WAYPOINT_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/test.yaml'
+WAYPOINT_PATH = '/home/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
+# WAYPOINT_PATH = '/home/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma.yaml'
 WAYPOINT_SAVE_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/waffle.yaml'
 WP_FEEDBACK_VISIBLE = True
 OVERWRITE = True
@@ -86,15 +87,16 @@ class traffic_waypoint_manager2_node(Node):
 
         self.send_wp_trigger_service = self.create_service(Trigger, 'waypoint_manager2/send_wp', self.send_wp_callback)
         self.save_wp_service = self.create_service(Trigger, 'waypoint_manager2/save_wp', self.save_wp_callback)
+        self.start_wp_nav_service = self.create_service(Trigger, 'waypoint_manager2/start_wp_nav', self.start_wp_nav_callback)
         self.next_wp_service = self.create_service(Trigger, 'waypoint_manager2/next_wp', self.next_wp_callback)
         self.route_pub = self.create_publisher(MarkerArray, 'waypoint_manager2/routes', 1)
         self.update_pub = self.create_publisher(InteractiveMarkerUpdate, 'waypoint_manager2/update', 1)
         # new traffic
         self.current_waypoint_pub = self.create_publisher(Int32, 'waypoint_manager2/current_waypoint', 1)
 
-        # subscribe amcl pose
+        # subscribe mcl pose
         qos_profile = qos.qos_profile_sensor_data
-        self.amcl_pos_sub = self.create_subscription(PoseWithCovarianceStamped, 'amcl_pose', self.amcl_callback, qos_profile)
+        self.mcl_pos_sub = self.create_subscription(PoseWithCovarianceStamped, 'mcl_pose', self.mcl_callback, qos_profile)
 
         self.time_period = TIME_PERIOD
         self.tmr = self.create_timer(self.time_period, self.callback)
@@ -126,10 +128,14 @@ class traffic_waypoint_manager2_node(Node):
         self.old_number_of_recoveries = 0
         self.failed_count = 0
 
-        # for calculating distance with amcl_pose
-        self.amcl_pos = PoseWithCovarianceStamped()
-        self.amcl_distance = 0
-        self.amcl_status = False
+        # for calculating distance with mcl_pose
+        self.mcl_pos = PoseWithCovarianceStamped()
+        self.mcl_distance = 0
+        self.mcl_status = False
+
+        self.goal_ = False
+        self.first = True
+        self.goal_status = False
 
     def callback(self):
         self.route_manager.marker_array = MarkerArray()
@@ -173,14 +179,20 @@ class traffic_waypoint_manager2_node(Node):
             with open(WAYPOINT_SAVE_PATH, 'w') as yml:
                 yaml.dump(self.config, yml)
 
+    def start_wp_nav_callback(self, request, response):
+        self.start_wp(None) 
+        response.success = True
+        response.message = "Waypoint navigation started."
+        return response
+
     def processFeedback(self, feedback):
         p = feedback.pose.position
         o = feedback.pose.orientation
         if WP_FEEDBACK_VISIBLE:
             print(f'{feedback.marker_name} is now at {p.x}, {p.y}, {p.z}')
         
-    def amcl_callback(self, msg):
-        self.amcl_pos = copy.deepcopy(msg)
+    def mcl_callback(self, msg):
+        self.mcl_pos = copy.deepcopy(msg)
         
     def makeBox(self, msg, flag):
         marker = Marker()
@@ -500,20 +512,18 @@ class traffic_waypoint_manager2_node(Node):
         pose_ = PoseStamped()
 
         waypoints = self.config['waypoint_server']['waypoints']
-        for i in range(len(waypoints)):
-            pose_.header.frame_id = "map"
-            pose_.pose.position.x = float(waypoints[i]['position']['x'])
-            pose_.pose.position.y = float(waypoints[i]['position']['y'])
-            pose_.pose.position.z = -0.01
-            euler = waypoints[i]['euler_angles']
-            q = self.quaternion_from_euler(float(euler['x']), float(euler['y']), float(euler['z']))
-            pose_.pose.orientation.x = q[0]
-            pose_.pose.orientation.y = q[1]
-            pose_.pose.orientation.z = q[2]
-            pose_.pose.orientation.w = q[3]
+        pose_.header.frame_id = "map"
+        pose_.pose.position.x = float(waypoints[self.current_waypoint]['position']['x'])
+        pose_.pose.position.y = float(waypoints[self.current_waypoint]['position']['y'])
+        pose_.pose.position.z = -0.01
+        euler = waypoints[self.current_waypoint]['euler_angles']
+        q = self.quaternion_from_euler(float(euler['x']), float(euler['y']), float(euler['z']))
+        pose_.pose.orientation.x = q[0]
+        pose_.pose.orientation.y = q[1]
+        pose_.pose.orientation.z = q[2]
+        pose_.pose.orientation.w = q[3]
 
-            if i == self.current_waypoint:
-                self.goal_msg.pose = copy.deepcopy(pose_)
+        self.goal_msg.pose = copy.deepcopy(pose_)
     
     def send_goal(self):
         self.future = self.action_client.send_goal_async(self.goal_msg, feedback_callback=self.feedback_callback)
@@ -541,18 +551,22 @@ class traffic_waypoint_manager2_node(Node):
 
         if status == action_msgs.msg.GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info('Goal succeeded!')
+            if (not self.goal_) and self.first:
+                self.start_wp_goal()
+                self.goal_ = False
+                self.first = False
         else:
             self.get_logger().info('Goal failed!')
             self.failed_count += 1
 
-    def calc_distance_with_amcl(self):
-        self.amcl_distance = math.sqrt((self.goal_msg.pose.pose.position.x - self.amcl_pos.pose.pose.position.x)**2 + (self.goal_msg.pose.pose.position.y - self.amcl_pos.pose.pose.position.y)**2)
+    def calc_distance_with_mcl(self):
+        self.mcl_distance = math.sqrt((self.goal_msg.pose.pose.position.x - self.mcl_pos.pose.pose.position.x)**2 + (self.goal_msg.pose.pose.position.y - self.mcl_pos.pose.pose.position.y)**2)
 
     def is_reached_goal(self):
         GOAL_RADIUS = 0.5
         self.reject_next_wp = False
         self.next_wp_flag = False
-        self.amcl_status = False
+        self.mcl_status = False
 
         waypoints = self.config['waypoint_server']['waypoints']
 
@@ -567,20 +581,21 @@ class traffic_waypoint_manager2_node(Node):
             if 'Stop_wp' in waypoints[self.current_waypoint]['properties']:
                 if waypoints[self.current_waypoint]['properties']['Stop_wp'] == 'Stop_ON':
                     self.reject_next_wp = True
+                    self.goal_ = True
 
-        self.calc_distance_with_amcl()
+        self.calc_distance_with_mcl()
 
-        if self.amcl_distance > self.distance:
-            self.amcl_status = True
-            self.distance = copy.deepcopy(self.amcl_distance)
+        if self.mcl_distance > self.distance:
+            self.mcl_status = True
+            self.distance = copy.deepcopy(self.mcl_distance)
 
-        print("distance_amcl :", self.amcl_distance)
+        print("distance_mcl :", self.mcl_distance)
         print( 'current_waypoint: ', self.current_waypoint)
 
         if self.nav_time.sec >= 3.0 or self.distance > GOAL_RADIUS + 0.5:
             self.next_wp_flag = True
         
-        print('reject_next_wp: ' + str(self.reject_next_wp) + '\n' + 'next_wp_flag: ' + str(self.next_wp_flag) + '\n' + 'bigger_amcl_distance: ' + str(self.amcl_status) + '\n')
+        print('reject_next_wp: ' + str(self.reject_next_wp) + '\n' + 'next_wp_flag: ' + str(self.next_wp_flag) + '\n' + 'bigger_mcl_distance: ' + str(self.mcl_status) + '\n')
 
         # check stop_wp
         if self.reject_next_wp:
