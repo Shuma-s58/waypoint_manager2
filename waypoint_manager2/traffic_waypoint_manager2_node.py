@@ -20,6 +20,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Int32
 
+#WAYPOINT_PATH = '$(find waypoint_manager2)/config/waypoints/test.yaml'
 WAYPOINT_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/test.yaml'
 # WAYPOINT_PATH = '/home/ros2_ws/src/waypoint_manager2/config/waypoints/test2.yaml'
 WAYPOINT_SAVE_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/waffle.yaml'
