@@ -36,6 +36,9 @@ class WaypointWindowNode(Node):
         qos_profile = qos.qos_profile_sensor_data
         self.mcl_sub = self.create_subscription(PoseWithCovarianceStamped, 'mcl_pose', self.mcl_callback, qos_profile)
 
+        # service: start waypoint navigation (merged from provided code)
+        self.start_wp_nav_service = self.create_service(Trigger, 'waypoint_manager2/start_wp_nav', self.start_wp_nav_callback)
+
         # load YAML waypoints
         self.all_waypoints = []
         self.load_waypoints(WAYPOINT_PATH)
@@ -289,6 +292,35 @@ class WaypointWindowNode(Node):
                 self.set_and_send_goal(self.current_index)
             else:
                 self.get_logger().info('Final waypoint reached; no further waypoints.')
+
+    # --- Merged methods from the extracted start_wp_nav-related code ---
+    def start_wp(self, feedback=None):
+        """
+        start_wp に相当する動作:
+          - マーカー再生成（ここでは publish_window_markers を呼ぶ）
+          - 現在のインデックスのゴールを送信
+        feedback 引数は無視（互換性のため残す）
+        """
+        # re-publish markers (equivalent to apply_wp / server.applyChanges in original)
+        self.publish_window_markers()
+        # send current goal
+        if 0 <= self.current_index < len(self.all_waypoints):
+            self.set_and_send_goal(self.current_index)
+        else:
+            self.get_logger().warn('start_wp: no valid current_index to send goal')
+
+    def start_wp_nav_callback(self, request, response):
+        """
+        Service callback for 'waypoint_manager2/start_wp_nav' (Trigger).
+        Mirrors the behavior extracted earlier: calls start_wp and returns a Trigger response.
+        """
+        # Start waypoint navigation
+        self.start_wp(None)
+        response.success = True
+        response.message = "Waypoint navigation started."
+        return response
+    # --- end merged methods ---
+
 
 def main(args=None):
     rclpy.init(args=args)
