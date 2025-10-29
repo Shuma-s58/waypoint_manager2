@@ -20,10 +20,11 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Int32
 
+WAYPOINT_PATH = '/home/rosuser/orne_ws/src/waypoint_manager2/config/waypoints/test.yaml'
 # WAYPOINT_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/test.yaml'
-WAYPOINT_PATH = '/home/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
+#WAYPOINT_PATH = '/home/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
 # WAYPOINT_PATH = '/home/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma.yaml'
-WAYPOINT_SAVE_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/waffle.yaml'
+#WAYPOINT_SAVE_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/waffle.yaml'
 WP_FEEDBACK_VISIBLE = True
 OVERWRITE = True
 TIME_PERIOD = 0.1

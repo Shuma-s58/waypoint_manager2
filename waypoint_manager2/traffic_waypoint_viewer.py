@@ -6,6 +6,7 @@ from rclpy.action import ActionClient
 from nav2_msgs.action import NavigateToPose
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Point, Quaternion
 from visualization_msgs.msg import Marker, MarkerArray
+from std_srvs.srv import Trigger
 import yaml
 import math
 from scipy.spatial.transform import Rotation as R
@@ -13,8 +14,9 @@ from std_msgs.msg import Int32
 from copy import deepcopy
 
 # YAML のパスを適宜変更してください
+WAYPOINT_PATH = '/home/rosuser/orne_ws/src/waypoint_manager2/config/waypoints/test.yaml'
 #WAYPOINT_PATH = '/home/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
-WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsukuba2025_all.yaml'
+#WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsukuba2025_all.yaml'
 
 # 表示ウィンドウサイズ（先頭から何個表示するか）
 WINDOW_SIZE = 5
@@ -36,6 +38,10 @@ class WaypointWindowNode(Node):
         qos_profile = qos.qos_profile_sensor_data
         self.mcl_sub = self.create_subscription(PoseWithCovarianceStamped, 'mcl_pose', self.mcl_callback, qos_profile)
 
+        # サービス追加
+        self.start_wp_nav_service = self.create_service(Trigger, 'waypoint_manager2/start_wp_nav', self.start_wp_nav_callback)
+        self.next_wp_service = self.create_service(Trigger, 'waypoint_manager2/next_wp', self.next_wp_callback)
+
         # load YAML waypoints
         self.all_waypoints = []
         self.load_waypoints(WAYPOINT_PATH)
@@ -50,12 +56,56 @@ class WaypointWindowNode(Node):
         # currently-target pose (PoseStamped)
         self.current_goal_pose = None
 
+        # navigation paused flag
+        self.navigation_paused = False
+        self.navigation_started = False
+
         # timer
         self.timer = self.create_timer(TIMER_PERIOD, self.timer_callback)
 
-        # 初回ゴール送信（もし waypoints があるなら）
-        if len(self.all_waypoints) > 0:
+        self.get_logger().info('WaypointWindowNode initialized. Waiting for start_wp_nav service call.')
+
+    def start_wp_nav_callback(self, request, response):
+        """start_wp_nav サービスのコールバック"""
+        self.get_logger().info('start_wp_nav service called')
+        
+        if len(self.all_waypoints) == 0:
+            response.success = False
+            response.message = "No waypoints loaded"
+            return response
+        
+        # ナビゲーションを最初から開始
+        self.current_index = 0
+        self.navigation_paused = False
+        self.navigation_started = True
+        self.set_and_send_goal(self.current_index)
+        
+        response.success = True
+        response.message = f"Waypoint navigation started from index {self.current_index}"
+        return response
+
+    def next_wp_callback(self, request, response):
+        """next_wp サービスのコールバック"""
+        self.get_logger().info('next_wp service called')
+        
+        if not self.navigation_started:
+            response.success = False
+            response.message = "Navigation not started. Call start_wp_nav first."
+            return response
+        
+        # 一時停止を解除して次のウェイポイントへ
+        self.navigation_paused = False
+        
+        if self.current_index < len(self.all_waypoints) - 1:
+            self.current_index += 1
             self.set_and_send_goal(self.current_index)
+            response.success = True
+            response.message = f"Moving to next waypoint (index {self.current_index})"
+        else:
+            response.success = False
+            response.message = "Already at final waypoint"
+        
+        return response
 
     def load_waypoints(self, path):
         with open(path, 'r') as f:
@@ -275,6 +325,10 @@ class WaypointWindowNode(Node):
         # publish current index for debugging or other nodes
         self.current_index_pub.publish(Int32(data=self.current_index))
 
+        # ナビゲーションが開始されていない、または一時停止中は到着判定をスキップ
+        if not self.navigation_started or self.navigation_paused:
+            return
+
         # arrival 判定（mcl を使ってチェック）
         dist = self.distance_to_current_goal()
         if dist is None:
@@ -283,12 +337,20 @@ class WaypointWindowNode(Node):
         radius = self.current_goal_radius()
         # 到着判定: dist <= radius
         if dist <= radius:
-            if self.current_index < len(self.all_waypoints) - 1:
+            # Stop_wp が ON の場合は一時停止
+            wp = self.all_waypoints[self.current_index]
+            stop_flag = self._stop_flag_from_props(wp.get('properties', {}))
+            
+            if stop_flag == 'ON':
+                self.get_logger().info(f'Waypoint {self.current_index} reached (STOP_ON). Pausing navigation.')
+                self.navigation_paused = True
+            elif self.current_index < len(self.all_waypoints) - 1:
                 self.get_logger().info(f'Waypoint {self.current_index} reached (dist={dist:.2f} <= {radius:.2f}). Sliding window.')
                 self.current_index += 1
                 self.set_and_send_goal(self.current_index)
             else:
                 self.get_logger().info('Final waypoint reached; no further waypoints.')
+                self.navigation_started = False
 
 def main(args=None):
     rclpy.init(args=args)
@@ -302,4 +364,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
