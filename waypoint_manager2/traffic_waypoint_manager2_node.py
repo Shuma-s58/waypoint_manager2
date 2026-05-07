@@ -610,10 +610,14 @@ class traffic_waypoint_manager2_node(Node):
                 self.next_wp()
 
     def next_wp(self):
+        if self._navigating_to_next:   # 遷移中フラグ
+            pass
+        self._navigating_to_next = True
         self.current_waypoint += 1
         self.old_number_of_recoveries = 0
         self.set_next_wp()
         self.send_goal()
+        self._navigating_to_next = False
 
 def main(args=None):
     rclpy.init(args=args)
