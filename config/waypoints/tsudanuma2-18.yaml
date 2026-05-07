@@ -1,0 +1,119 @@
+waypoint_server:
+  euler_angles:
+    x: 0
+    y: 0
+    z: 1.57
+  position:
+    x: 1
+    y: 2
+    z: 3
+  scale: 1
+  waypoints:
+  - euler_angles:
+      x: -2.6598355057081427e-06
+      y: -1.0296947945409585e-06
+      z: -1.7370897809010537
+    id: registed_goal_3
+    position:
+      x: 0.6146225333213806
+      y: -8.888669967651367
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: -6.724857438478584e-07
+      y: 2.6123871634808893e-06
+      z: -0.07757463075169184
+    id: registed_goal_3
+    position:
+      x: 0.7060501575469971
+      y: -14.45167350769043
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: -6.724857438478584e-07
+      y: 2.6123871634808893e-06
+      z: -0.07757463075169184
+    id: registed_goal_3
+    position:
+      x: 5.855137348175049
+      y: -14.994810104370117
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: 2.7099232282723186e-06
+      y: 6.350355545858832e-07
+      z: 1.4632627239708649
+    id: registed_goal_3
+    position:
+      x: 10.2115478515625
+      y: -15.11517333984375
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: 2.7099232282723186e-06
+      y: 6.350355545858832e-07
+      z: 1.4632627239708649
+    id: registed_goal_3
+    position:
+      x: 10.268420219421387
+      y: -9.134317398071289
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: 2.346772347084044e-07
+      y: -2.9314698708482467e-06
+      z: -3.058073417466345
+    id: registed_goal_3
+    position:
+      x: 10.0580472946167
+      y: -2.8610990047454834
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: 2.346772280272506e-07
+      y: -2.9314696956550534e-06
+      z: -3.058073422443032
+    id: registed_goal_3
+    position:
+      x: 5.815257549285889
+      y: -2.9243595600128174
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: -2.7987793668322184e-06
+      y: -5.47777023518492e-07
+      z: -1.5622181527171006
+    id: registed_goal_3
+    position:
+      x: 0.6947977542877197
+      y: -2.7834842205047607
+      z: -3
+    properties:
+      Stop_wp: Stop_OFF
+      goal_radius: 0.75
+  - euler_angles:
+      x: -2.7987793668322184e-06
+      y: -5.47777023518492e-07
+      z: -1.5622181527171006
+    id: registed_goal_3
+    position:
+      x: 0.7124148011207581
+      y: -3.476644277572632
+      z: -3
+    properties:
+      Stop_wp: Stop_ON
+      goal_radius: 0.75
