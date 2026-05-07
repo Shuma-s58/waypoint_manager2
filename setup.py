@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'waypoint_manager2_node = waypoint_manager2.waypoint_manager2_node:main',
             'traffic_waypoint_manager2_node = waypoint_manager2.traffic_waypoint_manager2_node:main',
+            're_traffic_waypoint_manager2_node = waypoint_manager2.re_traffic_waypoint_manager2_node:main',
             'traffic_waypoint_viewer = waypoint_manager2.traffic_waypoint_viewer:main'
         ],
     },

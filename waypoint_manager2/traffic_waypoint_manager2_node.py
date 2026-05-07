@@ -21,7 +21,8 @@ from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Int32
 
 # WAYPOINT_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/test.yaml'
-WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
+#WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
+WAYPOINT_PATH = '/home/ros/ros2_ws/src/waypoint_manager2/config/waypoints/tsudanuma2-18.yaml'
 # WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma.yaml'
 # WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2025_all_mirror.yaml'
 #WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsukuba2025_all.yaml'
@@ -555,7 +556,7 @@ class traffic_waypoint_manager2_node(Node):
         if status == action_msgs.msg.GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info('Goal succeeded!')
             if (not self.goal_) and self.first:
-                self.start_wp_goal()
+                self.next_wp()
                 self.goal_ = False
                 self.first = False
         else:
