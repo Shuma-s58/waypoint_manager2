@@ -144,10 +144,15 @@ class traffic_waypoint_manager2_node(Node):
         self.first = True
         self.goal_status = False
 
+        # marker_dirty
+        self.route_dirty_flag = True #初回描画
+
     def callback(self):
-        self.route_manager.marker_array = MarkerArray()
-        self.route_manager.updateRoute(self.config)
-        self.route_pub.publish(self.route_manager.marker_array)
+        if self.route_dirty_flag:
+            self.route_manager.marker_array = MarkerArray()
+            self.route_manager.updateRoute(self.config)
+            self.route_pub.publish(self.route_manager.marker_array)
+            self.route_dirty_flag = False
 
         # traffic
         waypoint_msg = Int32()
@@ -347,6 +352,9 @@ class traffic_waypoint_manager2_node(Node):
         # recreate interactive_marker
         self.apply_wp()
 
+        # 再描画
+        self.route_dirty = True
+
         # apply change
         self.server.applyChanges()
 
@@ -364,6 +372,9 @@ class traffic_waypoint_manager2_node(Node):
 
         # recreate interactive_marker
         self.apply_wp()
+
+        # 再描画
+        self.route_dirty = True
 
         # apply change
         self.server.applyChanges()
@@ -468,6 +479,8 @@ class traffic_waypoint_manager2_node(Node):
         self.server.setPose(feedback.marker_name, pose)
         # self.server.clear()
         # self.apply_wp()
+
+        self.route_dirty = True
         self.server.applyChanges()
     
     def calc_direction(self, x, y):
