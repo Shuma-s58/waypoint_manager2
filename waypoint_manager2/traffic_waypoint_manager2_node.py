@@ -21,8 +21,8 @@ from scipy.spatial.transform import Rotation as R
 from std_msgs.msg import Int32
 
 # WAYPOINT_PATH = '/root/yolov8_ws/src/waypoint_manager2/config/waypoints/test.yaml'
-#WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
-WAYPOINT_PATH = '/home/ros/ros2_ws/src/waypoint_manager2/config/waypoints/tsudanuma2-18.yaml'
+WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2-3.yaml'
+#WAYPOINT_PATH = '/home/ros/ros2_ws/src/waypoint_manager2/config/waypoints/tsudanuma2-18.yaml'
 # WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma.yaml'
 # WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsudanuma2025_all_mirror.yaml'
 #WAYPOINT_PATH = '/home/ros/ros2_ws/src/orne-box/orne_box_navigation_executor/config/waypoints/tsukuba2025_all.yaml'
@@ -127,6 +127,9 @@ class traffic_waypoint_manager2_node(Node):
         # stop_wp
         self.reject_next_wp = False
         self.next_wp_flag = False
+
+        # next_wp
+        self._navigating_to_next = False
 
         self.current_waypoint = 0
         self.old_number_of_recoveries = 0
@@ -611,7 +614,7 @@ class traffic_waypoint_manager2_node(Node):
 
     def next_wp(self):
         if self._navigating_to_next:   # 遷移中フラグ
-            pass
+            return
         self._navigating_to_next = True
         self.current_waypoint += 1
         self.old_number_of_recoveries = 0
